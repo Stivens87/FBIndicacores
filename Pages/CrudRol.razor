@@ -1,0 +1,535 @@
+@page "/rol"
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+
+
+
+<div class="container-xl">
+    <div class="table-responsive">
+        <div class="table-wrapper">
+            <div class="table-title">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h2>Administrar <b>Roles</b></h2>
+                    </div>
+                    <div class="col-sm-6">
+                        <button class="btn btn-info btn-sm" @onclick="() => mostrarModalConsulta = true">
+                            <i class="material-icons">&#xE8B6;</i> <span>Consultar</span>
+                        </button>
+
+                    <button class="btn btn-danger btn-sm" @onclick="MostrarModalEliminarMultiples">
+                        <i class="material-icons">&#xE15C;</i> <span>Eliminar</span>
+                    </button>
+
+                        <button class="btn btn-success btn-sm" @onclick="AbrirModal">
+                            <i class="material-icons">&#xE147;</i> <span>Agregar</span>
+                        </button>
+
+                        <button class="btn btn-info btn-sm" @onclick="() => EditarRolSeleccionado()">
+                            <i class="material-icons">&#xE254;</i> <span>Editar Seleccionado</span>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+
+            @if (cargando)
+            {
+                <p><em>Cargando...</em></p>
+            }
+            else if (roles == null || roles.Count == 0)
+            {
+                <p>No hay Roles disponibles.</p>
+            }
+            else
+            {
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                <span class="custom-checkbox">
+                                    <input type="checkbox" @bind="@seleccionarTodos">
+                                    <label></label>
+                                </span>
+                            </th>
+                            <th>id</th>
+                            <th>nombre</th>                            
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rol in roles)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="custom-checkbox">
+                                        <input type="checkbox" @bind="@rolSeleccionado[rol]">
+                                        <label></label>
+                                    </span>
+                                </td>
+                                <td>@ObtenerValor(rol, "id")</td>
+                                <td>@ObtenerValor(rol, "nombre")</td>                                
+                                <td>
+                                    <a href="#" class="edit" @onclick="() => EditarRol(rol)" @onclick:preventDefault>
+                                        <i class="material-icons" title="Editar">&#xE254;</i>
+                                    </a>
+                                <a href="#" class="delete" @onclick="() => EliminarRol(rol)" @onclick:preventDefault>
+                                    <i class="material-icons" title="Eliminar">&#xE872;</i>
+                                </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="GuardarRol">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Agregar Rol</h4>
+                        <button type="button" class="close" @onclick="CerrarModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Id</label>
+                            <input type="number" class="form-control" @bind="idRol" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreRol" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalConsulta)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Consultar Rol</h4>
+                    <button type="button" class="close" @onclick="CerrarModalConsulta">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Id del Rol</label>
+                        <input type="text" class="form-control" @bind="idRolConsulta">
+                    </div>
+                    <button class="btn btn-primary mt-2" @onclick="ConsultarRol">Buscar</button>
+
+                    @if (rolConsultado != null)
+                    {
+                        <hr>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" value="@nombreRolConsulta" disabled>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModalConsulta">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEditar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ActualizarRol">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Editar Rol</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEditar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Id</label>
+                            <input type="number" class="form-control" @bind="idRolEditar" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreRolEditar" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEditar">Cancelar</button>
+                        <button type="submit" class="btn btn-info">Actualizar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarRol">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Rol</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro(a) de que desea eliminar este rol?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminar">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminarMultiples)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarSeleccionados">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Roles Seleccionados</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminarMultiples">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro de que desea eliminar las Roles seleccionados?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminarMultiples">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<Dictionary<string, object>> roles = new List<Dictionary<string, object>>();
+    private Dictionary<Dictionary<string, object>, bool> rolSeleccionado = new();
+    private bool cargando = true;
+    private string? errorMensaje = null;
+
+    private bool seleccionarTodos
+    {
+        get => _seleccionarTodos;
+        set
+        {
+            _seleccionarTodos = value;
+            foreach (var clave in rolSeleccionado.Keys.ToList())
+            {
+                rolSeleccionado[clave] = _seleccionarTodos;
+            }
+        }
+    }
+    private bool _seleccionarTodos = false;
+
+    private bool mostrarModal = false;
+    @* private string idRol = ""; *@
+    private int idRol; // Added variable declaration
+    private string nombreRol = "";    
+
+// Variables para controlar el modal de consulta
+private bool mostrarModalConsulta = false;
+private string idRolConsulta = "";
+
+// Variables para mostrar los datos del rol consultado
+private Dictionary<string, object>? rolConsultado = null;
+private string nombreRolConsulta = "";
+
+
+// Variables para el modal de edición
+private bool mostrarModalEditar = false;
+private Dictionary<string, object>? rolParaEditar = null;
+private int idRolEditar;
+private string nombreRolEditar = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarRoles();
+    }
+
+    private async Task CargarRoles()
+    {
+        cargando = true;
+        errorMensaje = null;
+
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync("proyecto", "rol");
+            roles = resultado ?? new();
+            rolSeleccionado = roles.ToDictionary(p => p, p => false);
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar roles: {ex.Message}";
+            roles = new();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void AbrirModal()
+    {
+        mostrarModal = true;
+        nombreRol = "";
+    }
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+private async Task GuardarRol()
+{
+    // Validar que los campos no estén vacíos
+    if (string.IsNullOrEmpty(nombreRol))
+    {
+        errorMensaje = "El Nombre del rol es obligatorio.";
+        return;
+    }
+    // Crear el nuevo rol
+    var nuevoRol = new Dictionary<string, object>
+    {             
+        { "nombre", nombreRol },        
+    };
+
+    // 🔥 Llamar a la API para guardar en la base de datos
+    bool resultado = await servicioEntidad.CrearAsync("proyecto", "rol", nuevoRol);
+
+    if (resultado)  // Si la API responde con éxito
+    {
+        @* roles.Add(nuevoRol);  // Agregarlo a la lista local
+        rolSeleccionado[nuevoRol] = false; *@
+        await CargarRoles();
+        CerrarModal();
+    }
+    else
+    {
+        errorMensaje = "Error al guardar el rol en la base de datos.";
+    }
+}
+
+    private string ObtenerValor(Dictionary<string, object> diccionario, string clave)
+    {
+        return diccionario.TryGetValue(clave, out var valor) ? valor?.ToString() ?? "" : "";
+    }
+    private async Task ConsultarRol()
+{
+    if (string.IsNullOrEmpty(idRolConsulta))
+    {
+        errorMensaje = "Debe ingresar un código de rol.";
+        return;
+    }
+
+    var resultado = await servicioEntidad.ObtenerPorClaveAsync("proyecto", "rol", "id", idRolConsulta);
+
+    if (resultado != null)
+    {
+        rolConsultado = resultado;
+        nombreRolConsulta = ObtenerValor(resultado, "nombre");        
+    }
+    else
+    {
+        errorMensaje = "No se encontró el rol.";
+        rolConsultado = null;
+        nombreRolConsulta = "";        
+    }
+}
+private void CerrarModalConsulta()
+{
+    mostrarModalConsulta = false;
+    idRolConsulta = "";
+    rolConsultado = null;
+    nombreRolConsulta = "";    
+}
+private void EditarRol(Dictionary<string, object> rol)
+{
+    rolParaEditar = rol;
+    
+    // Cargar datos del rol en el formulario de edición
+    idRolEditar = int.TryParse(ObtenerValor(rol, "id"), out int id) ? id : 0; 
+    nombreRolEditar = ObtenerValor(rol, "nombre");
+    mostrarModalEditar = true;
+}
+
+private void CerrarModalEditar()
+{
+    mostrarModalEditar = false;
+    rolParaEditar = null;
+}
+
+private async Task ActualizarRol()
+{
+    if (rolParaEditar == null || string.IsNullOrEmpty(nombreRolEditar))
+    {
+        errorMensaje = "El nombre del rol es obligatorio.";
+        return;
+    }
+
+    var datosRolActualizado = new Dictionary<string, object>
+    {
+        @* { "id", idRolEditar }, *@
+        { "nombre", nombreRolEditar },        
+    };
+
+    // Actualizar el rol en la base de datos
+    bool resultado = await servicioEntidad.ActualizarAsync(
+        "proyecto", 
+        "rol", 
+        "id", 
+        idRolEditar.ToString(), 
+        datosRolActualizado);
+
+    if (resultado)
+    {
+        // Actualizar el rol en la lista local
+        @* int indice = roles.IndexOf(rolParaEditar);
+        if (indice >= 0) *@
+        
+        
+            @* roles[indice] = datosRolActualizado;
+            rolSeleccionado.Remove(rolParaEditar);
+            rolSeleccionado[datosRolActualizado] = false; *@
+            await CargarRoles();
+            CerrarModalEditar();
+        
+        @* CerrarModalEditar(); *@
+    }
+    else
+    {
+        errorMensaje = "Error al actualizar el tipo Actor en la base de datos.";
+    }
+}
+private void EditarRolSeleccionado()
+{
+    var seleccionado = rolSeleccionado.FirstOrDefault(x => x.Value).Key;
+    if (seleccionado != null)
+    {
+        EditarRol(seleccionado);
+    }
+    else
+    {
+        errorMensaje = "Debe seleccionar un tipo Actor para editar.";
+    }
+}
+// Variables para el modal de eliminación
+private bool mostrarModalEliminar = false;
+private Dictionary<string, object>? rolParaEliminar = null;
+
+private void EliminarRol(Dictionary<string, object> rol)
+{
+    rolParaEliminar = rol;
+    mostrarModalEliminar = true;
+}
+
+private void CerrarModalEliminar()
+{
+    mostrarModalEliminar = false;
+    rolParaEliminar = null;
+}
+
+private async Task ConfirmarEliminarRol()
+{
+    if (rolParaEliminar != null)
+    {
+        string id = ObtenerValor(rolParaEliminar, "id");
+        
+        // Eliminar de la base de datos
+        bool resultado = await servicioEntidad.EliminarAsync(
+            "proyecto", 
+            "rol", 
+            "id", 
+            id);
+            
+        if (resultado)
+        {
+            // Eliminar de la lista local
+            roles.Remove(rolParaEliminar);
+            rolSeleccionado.Remove(rolParaEliminar);
+        }
+        else
+        {
+            errorMensaje = "Error al eliminar el tipo Actor de la base de datos.";
+        }
+        
+        CerrarModalEliminar();
+    }
+}
+private async Task EliminarSeleccionados()
+{
+    var seleccionados = rolSeleccionado.Where(x => x.Value).Select(x => x.Key).ToList();
+    
+    foreach (var rol in seleccionados)
+    {
+        string id = ObtenerValor(rol, "id");
+        bool resultado = await servicioEntidad.EliminarAsync(
+            "proyecto", 
+            "rol", 
+            "id", 
+            id);
+            
+        if (resultado)
+        {
+            roles.Remove(rol);
+            rolSeleccionado.Remove(rol);
+        }
+    }
+    
+    seleccionarTodos = false;
+}
+// Variables para el modal de eliminación múltiple
+private bool mostrarModalEliminarMultiples = false;
+
+private void MostrarModalEliminarMultiples()
+{
+    // Verificar si hay roles seleccionados
+    var haySeleccionados = rolSeleccionado.Any(x => x.Value);
+    if (!haySeleccionados)
+    {
+        errorMensaje = "Debe seleccionar al menos un rol para eliminar.";
+        return;
+    }
+    
+    mostrarModalEliminarMultiples = true;
+}
+
+private void CerrarModalEliminarMultiples()
+{
+    mostrarModalEliminarMultiples = false;
+}
+
+private async Task ConfirmarEliminarSeleccionados()
+{
+    await EliminarSeleccionados();
+    CerrarModalEliminarMultiples();
+}
+}

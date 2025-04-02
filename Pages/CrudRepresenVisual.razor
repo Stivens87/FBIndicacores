@@ -1,0 +1,535 @@
+@page "/represenvisual"
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+
+
+
+<div class="container-xl">
+    <div class="table-responsive">
+        <div class="table-wrapper">
+            <div class="table-title">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h2>Administrar <b>Representante Visuales</b></h2>
+                    </div>
+                    <div class="col-sm-6">
+                        <button class="btn btn-info btn-sm" @onclick="() => mostrarModalConsulta = true">
+                            <i class="material-icons">&#xE8B6;</i> <span>Consultar</span>
+                        </button>
+
+                    <button class="btn btn-danger btn-sm" @onclick="MostrarModalEliminarMultiples">
+                        <i class="material-icons">&#xE15C;</i> <span>Eliminar</span>
+                    </button>
+
+                        <button class="btn btn-success btn-sm" @onclick="AbrirModal">
+                            <i class="material-icons">&#xE147;</i> <span>Agregar</span>
+                        </button>
+
+                        <button class="btn btn-info btn-sm" @onclick="() => EditarRepresenVisualSeleccionado()">
+                            <i class="material-icons">&#xE254;</i> <span>Editar Seleccionado</span>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+
+            @if (cargando)
+            {
+                <p><em>Cargando...</em></p>
+            }
+            else if (represenvisuales == null || represenvisuales.Count == 0)
+            {
+                <p>No hay Representante Visuales disponibles.</p>
+            }
+            else
+            {
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                <span class="custom-checkbox">
+                                    <input type="checkbox" @bind="@seleccionarTodos">
+                                    <label></label>
+                                </span>
+                            </th>
+                            <th>id</th>
+                            <th>nombre</th>                            
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var represenvisual in represenvisuales)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="custom-checkbox">
+                                        <input type="checkbox" @bind="@represenvisualSeleccionado[represenvisual]">
+                                        <label></label>
+                                    </span>
+                                </td>
+                                <td>@ObtenerValor(represenvisual, "id")</td>
+                                <td>@ObtenerValor(represenvisual, "nombre")</td>                                
+                                <td>
+                                    <a href="#" class="edit" @onclick="() => EditarRepresenVisual(represenvisual)" @onclick:preventDefault>
+                                        <i class="material-icons" title="Editar">&#xE254;</i>
+                                    </a>
+                                <a href="#" class="delete" @onclick="() => EliminarRepresenVisual(represenvisual)" @onclick:preventDefault>
+                                    <i class="material-icons" title="Eliminar">&#xE872;</i>
+                                </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="GuardarRepresenVisual">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Agregar Representante Visual</h4>
+                        <button type="button" class="close" @onclick="CerrarModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Id</label>
+                            <input type="number" class="form-control" @bind="idRepresenVisual" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreRepresenVisual" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalConsulta)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Consultar RepresenVisual</h4>
+                    <button type="button" class="close" @onclick="CerrarModalConsulta">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Id del RepresenVisual</label>
+                        <input type="text" class="form-control" @bind="idRepresenVisualConsulta">
+                    </div>
+                    <button class="btn btn-primary mt-2" @onclick="ConsultarRepresenVisual">Buscar</button>
+
+                    @if (represenvisualConsultado != null)
+                    {
+                        <hr>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" value="@nombreRepresenVisualConsulta" disabled>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModalConsulta">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEditar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ActualizarRepresenVisual">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Editar RepresenVisual</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEditar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Id</label>
+                            <input type="number" class="form-control" @bind="idRepresenVisualEditar" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreRepresenVisualEditar" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEditar">Cancelar</button>
+                        <button type="submit" class="btn btn-info">Actualizar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarRepresenVisual">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar RepresenVisual</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro(a) de que desea eliminar este represenvisual?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminar">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminarMultiples)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarSeleccionados">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Representante Visuales Seleccionados</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminarMultiples">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro de que desea eliminar las Representante Visuales seleccionados?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminarMultiples">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<Dictionary<string, object>> represenvisuales = new List<Dictionary<string, object>>();
+    private Dictionary<Dictionary<string, object>, bool> represenvisualSeleccionado = new();
+    private bool cargando = true;
+    private string? errorMensaje = null;
+
+    private bool seleccionarTodos
+    {
+        get => _seleccionarTodos;
+        set
+        {
+            _seleccionarTodos = value;
+            foreach (var clave in represenvisualSeleccionado.Keys.ToList())
+            {
+                represenvisualSeleccionado[clave] = _seleccionarTodos;
+            }
+        }
+    }
+    private bool _seleccionarTodos = false;
+
+    private bool mostrarModal = false;
+    @* private string idRepresenVisual = ""; *@
+    private int idRepresenVisual; // Added variable declaration
+    private string nombreRepresenVisual = "";    
+
+// Variables para controlar el modal de consulta
+private bool mostrarModalConsulta = false;
+private string idRepresenVisualConsulta = "";
+
+// Variables para mostrar los datos del represenvisual consultado
+private Dictionary<string, object>? represenvisualConsultado = null;
+private string nombreRepresenVisualConsulta = "";
+
+
+// Variables para el modal de edición
+private bool mostrarModalEditar = false;
+private Dictionary<string, object>? represenvisualParaEditar = null;
+private int idRepresenVisualEditar;
+private string nombreRepresenVisualEditar = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarRepresenVisuales();
+    }
+
+    private async Task CargarRepresenVisuales()
+    {
+        cargando = true;
+        errorMensaje = null;
+
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync("proyecto", "represenvisual");
+            represenvisuales = resultado ?? new();
+            represenvisualSeleccionado = represenvisuales.ToDictionary(p => p, p => false);
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar represenvisuales: {ex.Message}";
+            represenvisuales = new();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void AbrirModal()
+    {
+        mostrarModal = true;
+        nombreRepresenVisual = "";
+    }
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+private async Task GuardarRepresenVisual()
+{
+    // Validar que los campos no estén vacíos
+    if (string.IsNullOrEmpty(nombreRepresenVisual))
+    {
+        errorMensaje = "El Nombre del represenvisual es obligatorio.";
+        return;
+    }
+    // Crear el nuevo represenvisual
+    var nuevoRepresenVisual = new Dictionary<string, object>
+    {             
+        { "nombre", nombreRepresenVisual },        
+    };
+
+    // 🔥 Llamar a la API para guardar en la base de datos
+    bool resultado = await servicioEntidad.CrearAsync("proyecto", "represenvisual", nuevoRepresenVisual);
+
+    if (resultado)  // Si la API responde con éxito
+    {
+        @* represenvisuales.Add(nuevoRepresenVisual);  // Agregarlo a la lista local
+        represenvisualSeleccionado[nuevoRepresenVisual] = false; *@
+        await CargarRepresenVisuales();
+        CerrarModal();
+    }
+    else
+    {
+        errorMensaje = "Error al guardar el represenvisual en la base de datos.";
+    }
+}
+
+    private string ObtenerValor(Dictionary<string, object> diccionario, string clave)
+    {
+        return diccionario.TryGetValue(clave, out var valor) ? valor?.ToString() ?? "" : "";
+    }
+    private async Task ConsultarRepresenVisual()
+{
+    if (string.IsNullOrEmpty(idRepresenVisualConsulta))
+    {
+        errorMensaje = "Debe ingresar un código de represenvisual.";
+        return;
+    }
+
+    var resultado = await servicioEntidad.ObtenerPorClaveAsync("proyecto", "represenvisual", "id", idRepresenVisualConsulta);
+
+    if (resultado != null)
+    {
+        represenvisualConsultado = resultado;
+        nombreRepresenVisualConsulta = ObtenerValor(resultado, "nombre");        
+    }
+    else
+    {
+        errorMensaje = "No se encontró el represenvisual.";
+        represenvisualConsultado = null;
+        nombreRepresenVisualConsulta = "";        
+    }
+}
+private void CerrarModalConsulta()
+{
+    mostrarModalConsulta = false;
+    idRepresenVisualConsulta = "";
+    represenvisualConsultado = null;
+    nombreRepresenVisualConsulta = "";    
+}
+private void EditarRepresenVisual(Dictionary<string, object> represenvisual)
+{
+    represenvisualParaEditar = represenvisual;
+    
+    // Cargar datos del represenvisual en el formulario de edición
+    idRepresenVisualEditar = int.TryParse(ObtenerValor(represenvisual, "id"), out int id) ? id : 0; 
+    nombreRepresenVisualEditar = ObtenerValor(represenvisual, "nombre");
+    mostrarModalEditar = true;
+}
+
+private void CerrarModalEditar()
+{
+    mostrarModalEditar = false;
+    represenvisualParaEditar = null;
+}
+
+private async Task ActualizarRepresenVisual()
+{
+    if (represenvisualParaEditar == null || string.IsNullOrEmpty(nombreRepresenVisualEditar))
+    {
+        errorMensaje = "El nombre del represenvisual es obligatorio.";
+        return;
+    }
+
+    var datosRepresenVisualActualizado = new Dictionary<string, object>
+    {
+        @* { "id", idRepresenVisualEditar }, *@
+        { "nombre", nombreRepresenVisualEditar },        
+    };
+
+    // Actualizar el represenvisual en la base de datos
+    bool resultado = await servicioEntidad.ActualizarAsync(
+        "proyecto", 
+        "represenvisual", 
+        "id", 
+        idRepresenVisualEditar.ToString(), 
+        datosRepresenVisualActualizado);
+
+    if (resultado)
+    {
+        // Actualizar el represenvisual en la lista local
+        @* int indice = represenvisuales.IndexOf(represenvisualParaEditar);
+        if (indice >= 0) *@
+        
+        
+            @* represenvisuales[indice] = datosRepresenVisualActualizado;
+            represenvisualSeleccionado.Remove(represenvisualParaEditar);
+            represenvisualSeleccionado[datosRepresenVisualActualizado] = false; *@
+            await CargarRepresenVisuales();
+            CerrarModalEditar();
+        
+        @* CerrarModalEditar(); *@
+    }
+    else
+    {
+        errorMensaje = "Error al actualizar el tipo Actor en la base de datos.";
+    }
+}
+private void EditarRepresenVisualSeleccionado()
+{
+    var seleccionado = represenvisualSeleccionado.FirstOrDefault(x => x.Value).Key;
+    if (seleccionado != null)
+    {
+        EditarRepresenVisual(seleccionado);
+    }
+    else
+    {
+        errorMensaje = "Debe seleccionar un tipo Actor para editar.";
+    }
+}
+// Variables para el modal de eliminación
+private bool mostrarModalEliminar = false;
+private Dictionary<string, object>? represenvisualParaEliminar = null;
+
+private void EliminarRepresenVisual(Dictionary<string, object> represenvisual)
+{
+    represenvisualParaEliminar = represenvisual;
+    mostrarModalEliminar = true;
+}
+
+private void CerrarModalEliminar()
+{
+    mostrarModalEliminar = false;
+    represenvisualParaEliminar = null;
+}
+
+private async Task ConfirmarEliminarRepresenVisual()
+{
+    if (represenvisualParaEliminar != null)
+    {
+        string id = ObtenerValor(represenvisualParaEliminar, "id");
+        
+        // Eliminar de la base de datos
+        bool resultado = await servicioEntidad.EliminarAsync(
+            "proyecto", 
+            "represenvisual", 
+            "id", 
+            id);
+            
+        if (resultado)
+        {
+            // Eliminar de la lista local
+            represenvisuales.Remove(represenvisualParaEliminar);
+            represenvisualSeleccionado.Remove(represenvisualParaEliminar);
+        }
+        else
+        {
+            errorMensaje = "Error al eliminar el tipo Actor de la base de datos.";
+        }
+        
+        CerrarModalEliminar();
+    }
+}
+private async Task EliminarSeleccionados()
+{
+    var seleccionados = represenvisualSeleccionado.Where(x => x.Value).Select(x => x.Key).ToList();
+    
+    foreach (var represenvisual in seleccionados)
+    {
+        string id = ObtenerValor(represenvisual, "id");
+        bool resultado = await servicioEntidad.EliminarAsync(
+            "proyecto", 
+            "represenvisual", 
+            "id", 
+            id);
+            
+        if (resultado)
+        {
+            represenvisuales.Remove(represenvisual);
+            represenvisualSeleccionado.Remove(represenvisual);
+        }
+    }
+    
+    seleccionarTodos = false;
+}
+// Variables para el modal de eliminación múltiple
+private bool mostrarModalEliminarMultiples = false;
+
+private void MostrarModalEliminarMultiples()
+{
+    // Verificar si hay represenvisuales seleccionados
+    var haySeleccionados = represenvisualSeleccionado.Any(x => x.Value);
+    if (!haySeleccionados)
+    {
+        errorMensaje = "Debe seleccionar al menos un represenvisual para eliminar.";
+        return;
+    }
+    
+    mostrarModalEliminarMultiples = true;
+}
+
+private void CerrarModalEliminarMultiples()
+{
+    mostrarModalEliminarMultiples = false;
+}
+
+private async Task ConfirmarEliminarSeleccionados()
+{
+    await EliminarSeleccionados();
+    CerrarModalEliminarMultiples();
+}
+}
