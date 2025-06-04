@@ -1,7 +1,32 @@
 ﻿@page "/"
+@inject NavigationManager Navigation
 
-<PageTitle>Indicadores</PageTitle>
+<PageTitle>Inicio - Indicadores</PageTitle>
 
-<h1>Taller</h1>
+<section class="container py-5">
+    <h1 class="display-4">Bienvenido a FBindicadores 📊</h1>
+    <p class="lead">
+        Esta aplicación te permite gestionar y visualizar indicadores clave para tu organización. Accede de forma rápida y sencilla a las métricas más importantes, optimizando la toma de decisiones y fortaleciendo tu análisis estratégico.
+    </p>
+    
+    <hr />
 
-Bienvenido a la Aplicación de la segunda entrega llamada Indicadores.
+    <h3>¿Qué puedes hacer aquí?</h3>
+    <ul>
+        <li>Visualizar paneles e indicadores clave de desempeño.</li>
+        <li>Gestionar CRUD de indicadores y categorías.</li>
+        <li>Controlar el acceso de usuarios y roles según privilegios.</li>
+    </ul>
+
+    <p class="mt-4">
+        <strong>¿Aún no has iniciado sesión?</strong> Por favor inicia sesión para acceder a todas las funcionalidades:
+    </p>
+    <button class="btn btn-primary" @onclick="IrALogin">Iniciar Sesión</button>
+</section>
+
+@code {
+    private void IrALogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+}

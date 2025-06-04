@@ -36,3 +36,4 @@ builder.Services.AddScoped<ServicioEntidad>();
 // El uso de await asegura que la aplicación siga ejecutándose mientras el navegador esté abierto
 await builder.Build().RunAsync();
 
+

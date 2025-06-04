@@ -1,4 +1,89 @@
-﻿<!-- Contenedor superior del menú de navegación -->
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">FBindicadores</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <!-- Home -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <!-- Login -->
+        @if (!usuarioLogueado)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="login">
+                    <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Iniciar Sesión
+                </NavLink>
+            </div>
+        }
+        else
+        {
+            <!-- CRUD de Indicadores solo si está logueado -->
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="indicadores">
+                    <span class="bi bi-bar-chart-line-fill" aria-hidden="true"></span> Indicadores
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="fuente">
+                    <span class="bi bi-database-fill" aria-hidden="true"></span> Fuente
+                </NavLink>
+            </div>
+            <!-- Agrega aquí otros menús CRUD -->
+            <div class="nav-item px-3">
+                <a class="nav-link" href="#" @onclick="CerrarSesion">
+                    <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Cerrar Sesión
+                </a>
+            </div>
+        }
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private bool usuarioLogueado = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var emailUsuario = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "usuarioEmail");
+        bool estabaLogueado = usuarioLogueado;
+        usuarioLogueado = !string.IsNullOrEmpty(emailUsuario);
+
+        if (usuarioLogueado != estabaLogueado)
+        {
+            StateHasChanged();  // Forzar renderizado si hay cambio en el estado del usuario
+        }
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private async Task CerrarSesion()
+    {
+        await JSRuntime.InvokeVoidAsync("sessionStorage.clear");
+        usuarioLogueado = false;
+        Navigation.NavigateTo("/login", true);
+    }
+}
+
+
+@* <!-- Contenedor superior del menú de navegación -->
 <!-- top-row: define altura y posición, ps-3: padding izquierdo, navbar navbar-dark: estilos de Bootstrap para la barra de navegación oscura -->
 <div class="top-row ps-3 navbar navbar-dark">
     <!-- container-fluid: contenedor que ocupa todo el ancho disponible (Bootstrap) -->
@@ -38,8 +123,12 @@
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
-
-        <!-- Segunda opción de menú: Counter -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="indicadores">
+                <span class="oi oi-box" aria-hidden="true"></span> Indicadores
+        </NavLink>
+        </div>
+        @* <!-- Segunda opción de menú: Counter -->
         <div class="nav-item px-3">
             <!-- href="counter": enlace a la página de contador -->
             <NavLink class="nav-link" href="counter">
@@ -113,8 +202,8 @@
             <NavLink class="nav-link" href="sentido">
                 <span class="oi oi-box" aria-hidden="true"></span> Sentido
             </NavLink>
-        </div>
-    </nav>
+        </div> 
+    </nav>    
 </div>
 
 <!-- Bloque de código C# que define la lógica del componente -->
@@ -133,4 +222,4 @@
     {
         collapseNavMenu = !collapseNavMenu;
     }
-}
+} *@
